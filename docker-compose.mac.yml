@@ -9,6 +9,8 @@ services:
       - REPO=<owner>/<repo>
       - REG_TOKEN=<reg-token-for-self-hosted-runner>
       - NAME=<runner-name>
+      - CLOUDFLARE_API_TOKEN=${CLOUDFLARE_API_TOKEN}
+      - CLOUDFLARE_ACCOUNT_ID=${CLOUDFLARE_ACCOUNT_ID}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     deploy:

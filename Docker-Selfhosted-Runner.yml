@@ -1,0 +1,79 @@
+name: Deploy CSP Sidekick (Docker Selfhosted Runner)
+
+on:
+  workflow_dispatch:
+    inputs:
+      deployment_type:
+        description: "Deployment type"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - dry-run
+          - workers-only
+          - sites-only
+
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+      - ".github/**"
+      - "scripts/**"
+      - "README/**"
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "20"
+  PNPM_VERSION: "9.12.0"
+
+jobs:
+  deploy:
+    name: Build and Deploy
+    runs-on:
+      - self-hosted
+      - macos
+      - docker
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Build Docker image for deployment
+      - name: Build Docker Image
+        run: |
+          docker build -f Dockerfile.mac -t csp-sidekick-mac .
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }} # Set this as a GitHub Actions secret
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }} # Set this as a GitHub Actions secret
+
+      # Run deployment inside Docker container
+      - name: Run Deploy in Docker
+        run: |
+          docker run --rm \
+            -e CLOUDFLARE_API_TOKEN=${{ secrets.CLOUDFLARE_API_TOKEN }} \
+            -e CLOUDFLARE_ACCOUNT_ID=${{ secrets.CLOUDFLARE_ACCOUNT_ID }} \
+            -v $(pwd):/app \
+            csp-sidekick-mac \
+            /bin/bash -c "pnpm install --frozen-lockfile && ./scripts/deploy-all-direct.sh ${{ github.event.inputs.deployment_type || 'deploy' }}"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }} # Set this as a GitHub Actions secret
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }} # Set this as a GitHub Actions secret
+
+  # ...existing code for summary step...
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployment Type**: ${{ github.event.inputs.deployment_type || 'auto (push to main)' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ All projects deployed successfully!" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Deployment failed. Check logs above." >> $GITHUB_STEP_SUMMARY
+          fi
