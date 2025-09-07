@@ -42,26 +42,49 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Build Docker image for deployment
-      - name: Build Docker Image
-        run: |
-          docker build -f Dockerfile.mac -t csp-sidekick-mac .
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }} # Set this as a GitHub Actions secret
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }} # Set this as a GitHub Actions secret
 
-      # Run deployment inside Docker container
-      - name: Run Deploy in Docker
-        run: |
-          docker run --rm \
-            -e CLOUDFLARE_API_TOKEN=${{ secrets.CLOUDFLARE_API_TOKEN }} \
-            -e CLOUDFLARE_ACCOUNT_ID=${{ secrets.CLOUDFLARE_ACCOUNT_ID }} \
-            -v $(pwd):/app \
-            csp-sidekick-mac \
-            /bin/bash -c "pnpm install --frozen-lockfile && ./scripts/deploy-all-direct.sh ${{ github.event.inputs.deployment_type || 'deploy' }}"
+      # Run deployment directly on the self-hosted runner
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }} # Set this as a GitHub Actions secret
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }} # Set this as a GitHub Actions secret
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Deploy All Projects (Dry Run)
+        if: ${{ github.event.inputs.deployment_type == 'dry-run' || github.event_name == 'pull_request' }}
+        run: ./scripts/deploy-all-direct.sh dry-run
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Deploy All Projects
+        if: ${{ github.event.inputs.deployment_type == 'all' || (github.event_name == 'push' && github.ref == 'refs/heads/main') }}
+        run: ./scripts/deploy-all-direct.sh deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Deploy Workers Only
+        if: ${{ github.event.inputs.deployment_type == 'workers-only' }}
+        run: |
+          pnpm run build:shared
+          pnpm run build:workers
+          echo "🚀 Workers deployed successfully"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Deploy Sites Only
+        if: ${{ github.event.inputs.deployment_type == 'sites-only' }}
+        run: |
+          pnpm run build:shared
+          pnpm run build:react-apps
+          pnpm run build:astro-sites
+          pnpm run build:cspsidekick
+          echo "🚀 Sites deployed successfully"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
   # ...existing code for summary step...
 
