@@ -2,32 +2,22 @@ version: "3.8"
 
 services:
   runner:
-    image: custom-github-runner-mac:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.mac
+    image: github-runner:latest
+    container_name: github-runner
     platform: linux/arm64
     restart: always
     environment:
-      REPO: ${REPO}                # Format: owner/repo (e.g., csp-sidekick/your-monorepo)
-      REG_TOKEN: ${REG_TOKEN}      # GitHub self-hosted runner registration token
+      ORG: ${ORG}                  # Format: github org, e.g. csp-sidekick
+      REG_TOKEN: ${REG_TOKEN}      # GitHub self-hosted runner registration token (repo or org token)
       NAME: ${NAME}                # Any unique runner name (e.g., macos-docker-runner-1)
       CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN}
       CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    services:
-      runner:
-        build:
-          context: .
-          dockerfile: Dockerfile.mac
-        image: github-runner:latest
-        container_name: github-runner
-        platform: linux/arm64
-        restart: always
-        environment:
-          REPO: ${REPO}                # Format: owner/repo (e.g., csp-sidekick/your-monorepo)
-          REG_TOKEN: ${REG_TOKEN}      # GitHub self-hosted runner registration token
-          NAME: ${NAME}                # Any unique runner name (e.g., macos-docker-runner-1)
-          CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN}
-          CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID}
-        volumes:
-          - /var/run/docker.sock:/var/run/docker.sock
-        # deploy section is ignored by Docker Compose on Mac, so omitted for clarity
+      - runner-cache:/home/docker/actions-runner/_work # optional cache for workspace
+
+volumes:
+  runner-cache:

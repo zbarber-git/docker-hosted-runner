@@ -77,3 +77,8 @@ jobs:
           else
             echo "❌ Deployment failed. Check logs above." >> $GITHUB_STEP_SUMMARY
           fi
+                ORG: ${ORG}                  # Set org name when using org-level runner registration
+                REG_TOKEN: ${REG_TOKEN}
+                NAME: ${NAME}
+                CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN}
+                CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID}

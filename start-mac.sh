@@ -5,7 +5,7 @@ REG_TOKEN=$REG_TOKEN
 NAME=$NAME
 
 cd /home/runner/actions-runner || exit
-./config.sh --url https://github.com/${REPO} --token ${REG_TOKEN} --name ${NAME}
+./config.sh --url https://github.com/${ORG} --token ${REG_TOKEN} --name ${NAME}
 
 cleanup() {
   echo "Removing runner..."
