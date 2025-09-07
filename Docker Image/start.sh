@@ -24,12 +24,27 @@ download_runner() {
 
 register_runner() {
   cd "$RUNNER_DIR" || exit 1
-  if [ -z "$REG_TOKEN" ] || [ -z "$ORG" ]; then
-    echo "REG_TOKEN and ORG must be set to register the runner. Exiting." >&2
+
+  # If no REG_TOKEN provided, check whether runner already appears configured.
+  if [ -z "$REG_TOKEN" ]; then
+    if [ -f "$RUNNER_DIR/.credentials" ] || [ -f "$RUNNER_DIR/.runner" ] || [ -d "$RUNNER_DIR/_work" ]; then
+      echo "No REG_TOKEN provided but runner already configured; skipping registration."
+      return 0
+    fi
+    echo "REG_TOKEN not set and runner not configured. Provide REG_TOKEN to register the runner." >&2
     exit 1
   fi
+
+  if [ -z "$ORG" ]; then
+    echo "ORG must be set to register the runner. Exiting." >&2
+    exit 1
+  fi
+
   echo "Configuring runner for org: $ORG"
-  ./config.sh --url "https://github.com/${ORG}" --token "$REG_TOKEN" --name "$NAME" --labels "self-hosted,macos,arm64" --unattended
+  # allow LABELS to be set externally; default includes docker so workflows requesting 'docker' will match
+  LABELS=${LABELS:-"self-hosted,macos,arm64,docker"}
+  echo "Using labels: $LABELS"
+  ./config.sh --url "https://github.com/${ORG}" --token "$REG_TOKEN" --name "$NAME" --labels "$LABELS" --unattended
 }
 
 cleanup() {
