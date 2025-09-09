@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ORG=${ORG:-}
+REPO=${REPO:-}
 REG_TOKEN=${REG_TOKEN:-}
 NAME=${NAME:-github-runner}
 RUNNER_DIR=/home/runner/actions-runner
@@ -25,26 +26,33 @@ download_runner() {
 register_runner() {
   cd "$RUNNER_DIR" || exit 1
 
-  # If no REG_TOKEN provided, check whether runner already appears configured.
+  # If runner already appears configured, skip registration regardless of REG_TOKEN
+  if [ -f "$RUNNER_DIR/.credentials" ] || [ -f "$RUNNER_DIR/.runner" ]; then
+    echo "Runner already configured; skipping registration."
+    return 0
+  fi
+
   if [ -z "$REG_TOKEN" ]; then
-    if [ -f "$RUNNER_DIR/.credentials" ] || [ -f "$RUNNER_DIR/.runner" ] || [ -d "$RUNNER_DIR/_work" ]; then
-      echo "No REG_TOKEN provided but runner already configured; skipping registration."
-      return 0
-    fi
     echo "REG_TOKEN not set and runner not configured. Provide REG_TOKEN to register the runner." >&2
     exit 1
   fi
 
-  if [ -z "$ORG" ]; then
-    echo "ORG must be set to register the runner. Exiting." >&2
+  # Prefer REPO if set, otherwise use ORG
+  if [ -n "$REPO" ]; then
+    REG_URL="https://github.com/${REPO}"
+    echo "Configuring runner for repo: $REPO"
+  elif [ -n "$ORG" ]; then
+    REG_URL="https://github.com/${ORG}"
+    echo "Configuring runner for org: $ORG"
+  else
+    echo "Either REPO or ORG must be set to register the runner. Exiting." >&2
     exit 1
   fi
 
-  echo "Configuring runner for org: $ORG"
   # allow LABELS to be set externally; default includes docker so workflows requesting 'docker' will match
   LABELS=${LABELS:-"self-hosted,macos,arm64,docker"}
   echo "Using labels: $LABELS"
-  ./config.sh --url "https://github.com/${ORG}" --token "$REG_TOKEN" --name "$NAME" --labels "$LABELS" --unattended
+  ./config.sh --url "$REG_URL" --token "$REG_TOKEN" --name "$NAME" --labels "$LABELS" --unattended
 }
 
 cleanup() {
