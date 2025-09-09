@@ -18,6 +18,8 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - runner-cache:/home/docker/actions-runner/_work # optional cache for workspace
+      - runner-bin:/home/runner/actions-runner # cache for runner binary to avoid re-downloads
 
 volumes:
   runner-cache:
+  runner-bin:
