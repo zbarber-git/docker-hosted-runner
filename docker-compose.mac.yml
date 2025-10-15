@@ -11,6 +11,7 @@ services:
     restart: always
     environment:
       ORG: ${ORG}
+      REPO: ${REPO}
       REG_TOKEN: ${REG_TOKEN}
       NAME: runner-0
       LABELS: "deploy-0,macos,docker"
@@ -31,6 +32,7 @@ services:
     restart: always
     environment:
       ORG: ${ORG}
+      REPO: ${REPO}
       REG_TOKEN: ${REG_TOKEN}
       NAME: runner-1
       LABELS: "deploy-1,macos,docker"
@@ -51,6 +53,7 @@ services:
     restart: always
     environment:
       ORG: ${ORG}
+      REPO: ${REPO}
       REG_TOKEN: ${REG_TOKEN}
       NAME: runner-2
       LABELS: "deploy-2,macos,docker"
@@ -71,6 +74,7 @@ services:
     restart: always
     environment:
       ORG: ${ORG}
+      REPO: ${REPO}
       REG_TOKEN: ${REG_TOKEN}
       NAME: runner-3
       LABELS: "deploy-3,macos,docker"
